@@ -4,12 +4,28 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { generateTravelPlan } from "@/lib/openai";
 import { useToast } from "@/components/ui/use-toast";
 import ReactMarkdown from "react-markdown";
+import { supabase } from "@/lib/supabase";
+import { useQuery } from "@tanstack/react-query";
 
 const Planner = () => {
   const [destination, setDestination] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [travelPlan, setTravelPlan] = useState<string | null>(null);
   const { toast } = useToast();
+
+  // Récupérer les voyages existants
+  const { data: trips } = useQuery({
+    queryKey: ['trips'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('trips')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    }
+  });
 
   const handleGenerate = async () => {
     if (!destination) return;
@@ -20,15 +36,28 @@ const Planner = () => {
     try {
       const plan = await generateTravelPlan(destination);
       setTravelPlan(plan);
+
+      // Sauvegarder le plan dans Supabase
+      const { error } = await supabase
+        .from('trips')
+        .insert({
+          destination,
+          title: `Voyage à ${destination}`,
+          description: plan,
+          itinerary: plan
+        });
+
+      if (error) throw error;
+
       toast({
-        title: "Travel Plan Generated!",
-        description: "Scroll down to see your personalized itinerary.",
+        title: "Plan de voyage généré !",
+        description: "Votre itinéraire a été sauvegardé.",
       });
     } catch (error) {
-      console.error("Failed to generate plan:", error);
+      console.error("Erreur lors de la génération du plan:", error);
       toast({
-        title: "Error",
-        description: "Failed to generate travel plan. Please try again.",
+        title: "Erreur",
+        description: "Impossible de générer le plan de voyage. Veuillez réessayer.",
         variant: "destructive",
       });
     } finally {
@@ -40,10 +69,10 @@ const Planner = () => {
     <div className="min-h-screen bg-background p-6 pb-20">
       <header className="mb-8 animate-fade-up">
         <h1 className="text-3xl font-bold text-foreground mb-2">
-          Plan Your Trip
+          Planifiez votre voyage
         </h1>
         <p className="text-muted-foreground">
-          Let AI create your perfect itinerary
+          Laissez l'IA créer votre itinéraire parfait
         </p>
       </header>
 
@@ -51,14 +80,14 @@ const Planner = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <MapPin className="h-5 w-5 text-primary" />
-            Where do you want to go?
+            Où souhaitez-vous aller ?
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <input
               type="text"
-              placeholder="Enter destination..."
+              placeholder="Entrez une destination..."
               value={destination}
               onChange={(e) => setDestination(e.target.value)}
               className="w-full p-3 rounded-lg border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring"
@@ -72,12 +101,12 @@ const Planner = () => {
               {isGenerating ? (
                 <>
                   <Loader2 className="h-5 w-5 animate-spin" />
-                  Generating your plan...
+                  Génération en cours...
                 </>
               ) : (
                 <>
                   <Plane className="h-5 w-5" />
-                  Generate Plan
+                  Générer le plan
                   <ArrowRight className="h-5 w-5" />
                 </>
               )}
@@ -86,20 +115,19 @@ const Planner = () => {
         </CardContent>
       </Card>
 
-      {!travelPlan && !isGenerating && (
+      {!travelPlan && !isGenerating && trips && trips.length > 0 && (
         <div className="space-y-4">
           <h2 className="text-lg font-semibold text-foreground">
-            Popular Destinations
+            Vos voyages précédents
           </h2>
-          {["Tokyo, Japan", "Paris, France", "New York, USA"].map((place) => (
+          {trips.map((trip) => (
             <Card 
-              key={place}
+              key={trip.id}
               className="cursor-pointer transform transition-all hover:scale-[1.02]"
-              onClick={() => setDestination(place)}
             >
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
-                  <span className="font-medium">{place}</span>
+                  <span className="font-medium">{trip.destination}</span>
                   <ArrowRight className="h-4 w-4 text-muted-foreground" />
                 </div>
               </CardContent>
@@ -111,7 +139,7 @@ const Planner = () => {
       {travelPlan && (
         <Card className="mt-8 animate-fade-up">
           <CardHeader>
-            <CardTitle>Your Travel Plan for {destination}</CardTitle>
+            <CardTitle>Votre plan de voyage pour {destination}</CardTitle>
           </CardHeader>
           <CardContent className="prose prose-sm md:prose-base dark:prose-invert max-w-none">
             <ReactMarkdown>{travelPlan}</ReactMarkdown>
