@@ -34,17 +34,25 @@ const Planner = () => {
     setTravelPlan(null);
     
     try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error("Vous devez être connecté pour créer un voyage");
+      }
+
       const plan = await generateTravelPlan(destination);
       setTravelPlan(plan);
 
-      // Sauvegarder le plan dans Supabase
+      // Sauvegarder le plan dans Supabase avec l'ID de l'utilisateur
       const { error } = await supabase
         .from('trips')
         .insert({
           destination,
           title: `Voyage à ${destination}`,
           description: plan,
-          itinerary: plan
+          itinerary: plan,
+          user_id: user.id // Ajout de l'ID de l'utilisateur
         });
 
       if (error) throw error;
@@ -57,7 +65,7 @@ const Planner = () => {
       console.error("Erreur lors de la génération du plan:", error);
       toast({
         title: "Erreur",
-        description: "Impossible de générer le plan de voyage. Veuillez réessayer.",
+        description: error instanceof Error ? error.message : "Impossible de générer le plan de voyage. Veuillez réessayer.",
         variant: "destructive",
       });
     } finally {
