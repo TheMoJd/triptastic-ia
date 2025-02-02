@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { generateTravelPlan } from "@/lib/openai";
 import { useToast } from "@/components/ui/use-toast";
 import ReactMarkdown from "react-markdown";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
 const Planner = () => {
