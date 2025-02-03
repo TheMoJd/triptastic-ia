@@ -12,16 +12,16 @@ Format your response in markdown with the following sections:
 export async function generateTravelPlan(destination: string) {
   try {
     // Get the secret from Supabase
-    const { data, error: secretError } = await supabase.rpc('get_secret', {
+    const { data: secretData, error: secretError } = await supabase.rpc('get_secret', {
       name: 'OPENAI_API_KEY'
     });
 
-    if (secretError || !data?.[0]?.secret) {
+    if (secretError || !secretData?.[0]?.secret) {
       console.error("Error fetching OpenAI API key:", secretError);
       throw new Error("Impossible de récupérer la clé API OpenAI");
     }
 
-    const apiKey = data[0].secret;
+    const apiKey = secretData[0].secret;
     console.log("Generating travel plan for:", destination);
     
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -44,8 +44,8 @@ export async function generateTravelPlan(destination: string) {
       throw new Error(`OpenAI API error: ${response.statusText}`);
     }
 
-    const data = await response.json();
-    return data.choices[0].message.content;
+    const responseData = await response.json();
+    return responseData.choices[0].message.content;
   } catch (error) {
     console.error("Error generating travel plan:", error);
     throw error;
