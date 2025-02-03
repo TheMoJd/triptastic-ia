@@ -1,4 +1,5 @@
 import { toast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const SYSTEM_PROMPT = `You are an expert travel planner. Create detailed, organized travel plans. 
 Format your response in markdown with the following sections:
@@ -9,15 +10,19 @@ Format your response in markdown with the following sections:
 - Estimated Budget`;
 
 export async function generateTravelPlan(destination: string) {
-  const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-  
-  if (!apiKey) {
-    throw new Error("OpenAI API key not configured");
-  }
-
-  console.log("Generating travel plan for:", destination);
-  
   try {
+    // Get the secret from Supabase
+    const { data: { secret: apiKey }, error: secretError } = await supabase.rpc('get_secret', {
+      name: 'OPENAI_API_KEY'
+    });
+
+    if (secretError || !apiKey) {
+      console.error("Error fetching OpenAI API key:", secretError);
+      throw new Error("Impossible de récupérer la clé API OpenAI");
+    }
+
+    console.log("Generating travel plan for:", destination);
+    
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
