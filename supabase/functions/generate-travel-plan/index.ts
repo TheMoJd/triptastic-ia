@@ -37,7 +37,7 @@ serve(async (req) => {
         Authorization: `Bearer ${openAIApiKey}`,
       },
       body: JSON.stringify({
-        model: "gpt-4",
+        model: "gpt-4o-mini",
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: `Create a 3-day travel plan for ${destination}. Include specific places, timing, and practical tips.` }
