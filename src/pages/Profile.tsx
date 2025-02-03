@@ -1,42 +1,110 @@
 import { User, Settings, BookMarked, LogOut } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/components/ui/use-toast";
+import { useQuery } from "@tanstack/react-query";
 
 const Profile = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  // Récupérer les informations du profil
+  const { data: profile } = useQuery({
+    queryKey: ['profile'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Non authentifié");
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast({
+        title: "Déconnexion réussie",
+        description: "À bientôt !",
+      });
+      navigate("/auth");
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de se déconnecter. Veuillez réessayer.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const menuItems = [
-    { icon: BookMarked, label: "Saved Trips", action: () => console.log("Saved trips clicked") },
-    { icon: Settings, label: "Settings", action: () => console.log("Settings clicked") },
-    { icon: LogOut, label: "Log Out", action: () => console.log("Logout clicked") },
+    { 
+      icon: BookMarked, 
+      label: "Voyages sauvegardés", 
+      action: () => navigate("/saved-trips"),
+      description: "Consultez vos itinéraires enregistrés"
+    },
+    { 
+      icon: Settings, 
+      label: "Paramètres", 
+      action: () => navigate("/settings"),
+      description: "Gérez vos préférences"
+    },
+    { 
+      icon: LogOut, 
+      label: "Déconnexion", 
+      action: handleLogout,
+      description: "Se déconnecter de l'application"
+    },
   ];
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <header className="mb-8 animate-fade-up">
+    <div className="min-h-screen bg-background p-6 animate-fade-in">
+      <header className="mb-8">
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-20 h-20 rounded-full bg-primary flex items-center justify-center">
-            <User className="h-10 w-10 text-white" />
-          </div>
+          <Avatar className="w-24 h-24 border-4 border-primary">
+            <AvatarImage src={profile?.avatar_url} />
+            <AvatarFallback className="bg-primary text-xl text-primary-foreground">
+              {profile?.full_name?.charAt(0) || profile?.email?.charAt(0)}
+            </AvatarFallback>
+          </Avatar>
           <div>
             <h1 className="text-2xl font-bold text-foreground">
-              John Doe
+              {profile?.full_name || "Utilisateur"}
             </h1>
-            <p className="text-gray-500">
-              john.doe@example.com
+            <p className="text-muted-foreground">
+              {profile?.email}
             </p>
           </div>
         </div>
       </header>
 
-      <div className="space-y-4">
+      <div className="space-y-4 max-w-md mx-auto">
         {menuItems.map((item) => (
           <Card
             key={item.label}
-            className="cursor-pointer transform transition-all hover:bg-secondary/50"
+            className="cursor-pointer transform transition-all hover:scale-[1.02] hover:shadow-md"
             onClick={item.action}
           >
             <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <item.icon className="h-5 w-5 text-primary" />
-                <span className="font-medium">{item.label}</span>
+              <div className="flex items-center gap-4">
+                <div className="p-2 rounded-full bg-primary/10">
+                  <item.icon className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-medium">{item.label}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {item.description}
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -44,8 +112,8 @@ const Profile = () => {
       </div>
 
       <div className="mt-8 text-center">
-        <p className="text-sm text-gray-500">
-          App Version 1.0.0
+        <p className="text-sm text-muted-foreground">
+          Version 1.0.0
         </p>
       </div>
     </div>

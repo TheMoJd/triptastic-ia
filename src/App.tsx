@@ -7,6 +7,7 @@ import AppLayout from "./components/layout/AppLayout";
 import Index from "./pages/Index";
 import Planner from "./pages/Planner";
 import Profile from "./pages/Profile";
+import SavedTrips from "./pages/SavedTrips";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -24,6 +25,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/planner" element={<Planner />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/saved-trips" element={<SavedTrips />} />
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>
