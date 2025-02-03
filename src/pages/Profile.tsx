@@ -11,21 +11,48 @@ const Profile = () => {
   const { toast } = useToast();
 
   // Récupérer les informations du profil
-  const { data: profile } = useQuery({
+  const { data: profile, isError, isLoading } = useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
+      console.log("Fetching profile data...");
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Non authentifié");
+      if (!user) {
+        console.error("No authenticated user found");
+        throw new Error("Non authentifié");
+      }
 
+      console.log("User found, fetching profile...", user.id);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching profile:", error);
+        throw error;
+      }
+
+      if (!data) {
+        console.log("No profile found, creating one...");
+        const { data: newProfile, error: createError } = await supabase
+          .from('profiles')
+          .insert([{ id: user.id, email: user.email }])
+          .select()
+          .single();
+
+        if (createError) {
+          console.error("Error creating profile:", createError);
+          throw createError;
+        }
+
+        return newProfile;
+      }
+
+      console.log("Profile found:", data);
       return data;
-    }
+    },
+    retry: 1,
   });
 
   const handleLogout = async () => {
@@ -37,6 +64,7 @@ const Profile = () => {
       });
       navigate("/auth");
     } catch (error) {
+      console.error("Logout error:", error);
       toast({
         title: "Erreur",
         description: "Impossible de se déconnecter. Veuillez réessayer.",
@@ -65,6 +93,22 @@ const Profile = () => {
       description: "Se déconnecter de l'application"
     },
   ];
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background p-6 flex items-center justify-center">
+        <div className="animate-pulse text-primary">Chargement...</div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-background p-6 flex items-center justify-center">
+        <div className="text-destructive">Une erreur est survenue lors du chargement du profil.</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background p-6 animate-fade-in">
