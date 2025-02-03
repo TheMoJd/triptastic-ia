@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
-import { Home, Map, User } from "lucide-react";
+import { Home, Map, UserIcon } from "lucide-react"; // Renommé User en UserIcon
 import { supabase } from "@/integrations/supabase/client";
-import type { User } from "@supabase/supabase-js";
+import type { User as SupabaseUser } from "@supabase/supabase-js"; // Renommé User en SupabaseUser
 
 const AppLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<SupabaseUser | null>(null);
 
   useEffect(() => {
     // Vérifier l'état de l'authentification au chargement
@@ -69,7 +69,7 @@ const AppLayout = () => {
               isActive("/profile") ? "text-primary" : "text-gray-400"
             }`}
           >
-            <User size={24} />
+            <UserIcon size={24} />
             <span className="text-xs">Profil</span>
           </button>
         </div>
